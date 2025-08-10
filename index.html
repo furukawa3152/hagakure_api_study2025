@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenAI API × Python 手書き実装 - HAGAKUREプログラミング塾</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #e0f7fa; /* Light Cyan */
+            color: #263238; /* Dark Grey Blue */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .slider-container {
+            width: 100%;
+            height: 850px; /* 1ページの高さ制約 */
+            position: relative;
+            overflow: hidden;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            background-color: #ffffff;
+        }
+
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 100%;
+            width: 100%;
+            height: 100%;
+            background-color: #ffffff;
+            transition: left 0.5s ease-in-out;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        .slide.active {
+            left: 0;
+        }
+
+        .slide h1 {
+            font-size: 3.6em;
+            color: #007bff; /* Bright Blue */
+            margin-bottom: 20px;
+            background-color: rgba(255, 255, 255, 0.8);
+            padding: 20px;
+            border-radius: 12px;
+            z-index: 2;
+        }
+
+        .slide h2 {
+            font-size: 2.6em;
+            color: #00796b; /* Teal */
+            margin-bottom: 28px;
+        }
+
+        .slide p {
+            font-size: 1.5em;
+            line-height: 1.9;
+            max-width: 90%;
+            color: #455a64; /* Blue Grey */
+        }
+
+        .slide a {
+            font-size: 1.2em;
+            color: #00796b; /* Teal */
+            text-decoration: none;
+            margin-top: 12px;
+        }
+
+        .slide a:hover {
+            text-decoration: underline;
+        }
+
+        #hero-slide {
+            background: url('images/hero-python.png') no-repeat center center/cover;
+            color: white;
+        }
+
+        #hero-slide h1 {
+            color: white;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .slide .community-name {
+            font-size: 1.4em;
+            color: white;
+            margin-top: -10px;
+            background-color: rgba(0, 0, 0, 0.6);
+            padding: 8px 16px;
+            border-radius: 8px;
+        }
+
+        .goal {
+            font-size: 2.2em !important;
+            color: #d84315; /* Deep Orange */
+            font-weight: bold;
+            margin-top: 26px;
+        }
+
+        .navigation {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            gap: 20px;
+        }
+
+        .arrow {
+            background-color: #00796b; /* Teal */
+            color: white;
+            border: none;
+            padding: 14px 24px;
+            font-size: 1.8em;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .arrow:hover {
+            background-color: #004d40; /* Darker Teal */
+        }
+
+        .arrow:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+
+        .character-image {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            width: 140px;
+            height: auto;
+            z-index: 10;
+        }
+
+        .content-list {
+            text-align: left;
+            font-size: 1.3em;
+            line-height: 1.8;
+            max-width: 90%;
+        }
+
+        .content-list li {
+            margin-bottom: 12px;
+        }
+
+        .code-block {
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 18px;
+            font-family: 'Courier New', monospace;
+            font-size: 1.05em;
+            text-align: left;
+            max-width: 92%;
+            margin: 16px 0;
+            overflow-x: auto;
+            white-space: pre;
+            line-height: 1.5;
+        }
+
+        .chapter-title {
+            font-size: 2.2em !important;
+            color: #d84315; /* Deep Orange */
+            font-weight: bold;
+            margin-bottom: 22px;
+        }
+
+        .chapter-subtitle {
+            font-size: 1.5em;
+            color: #00796b;
+            margin-bottom: 18px;
+        }
+    </style>
+    <meta name="robots" content="noindex" />
+    <meta name="description" content="OpenAI 公式SDK（Responses API）での手書き実装、環境変数、エラーハンドリング、ストリーミングの実演スライド。">
+</head>
+<body>
+    <div class="slider-container">
+        <!-- 1: Hero -->
+        <section id="hero-slide" class="slide active">
+            <h1>OpenAI API × Python<br>手書き実装</h1>
+            <p class="community-name">HAGAKUREプログラミング塾　2025.08.17</p>
+        </section>
+
+        <!-- 2: 概要 -->
+        <section class="slide">
+            <h2>講座の概要</h2>
+            <ul class="content-list">
+                <li>公式SDK（Responses API）で最小実装</li>
+                <li>環境変数でAPIキー管理</li>
+                <li>基本のエラーハンドリング</li>
+                <li>ストリーミング出力</li>
+                <li>会話を貯めるチャット（クラス）</li>
+                <li>対話ループ（input版）</li>
+            </ul>
+        </section>
+
+        <!-- 3: 環境確認（流用） -->
+        <section class="slide">
+            <h2>環境確認</h2>
+            <p>画面共有は見えていますか？<br>音声ははっきりと聞こえていますか？<br>チャットはSlackの方でお願いします。</p>
+        </section>
+
+        <!-- 4: Special Thanks（流用） -->
+        <section class="slide">
+            <h2>Special Thanks</h2>
+            <p>佐賀県産業スマート化センターさまのコミュニティ支援にて、<br>ZOOMの有料プランを提供いただき、利用させていただいております。<br>
+                <a href="https://www.saga-smart.jp/" target="_blank">https://www.saga-smart.jp/</a>
+            </p>
+        </section>
+
+        <!-- 5: 今日のゴール -->
+        <section class="slide">
+            <h2>今日のゴール</h2>
+            <p>APIキーを安全に管理し、最小→環境変数→エラーハンドリング→ストリーミングまで体験する</p>
+            <p class="goal">PythonでOpenAI APIの基礎を一気に！</p>
+        </section>
+
+        <!-- 5.5: 事前準備：APIキーの取得 -->
+        <section class="slide">
+            <h2 class="chapter-title">事前準備：APIキーの取得</h2>
+            <p class="chapter-subtitle">OpenAI Platform での手順</p>
+            <ul class="content-list">
+                <li>OpenAIにサインアップ/ログイン（
+                    <a href="https://platform.openai.com/" target="_blank">OpenAI Platform</a>）
+                </li>
+                <li>Billingの設定・支払い方法を登録（
+                    <a href="https://platform.openai.com/settings/billing" target="_blank">Billing設定</a>）
+                </li>
+                <li>API Keysページで「Create new secret key」（
+                    <a href="https://platform.openai.com/api-keys" target="_blank">API Keys</a>）
+                </li>
+                <li>表示されたキーをコピーして安全な場所に保管</li>
+                <li>本講座では `.env` に保存して使用</li>
+            </ul>
+            <p style="font-size: 1.1em; max-width: 90%; color:#455a64;">
+                注意：APIキーは公開しない／ソース管理（Git等）にコミットしない
+            </p>
+        </section>
+
+        <!-- 6: インストール -->
+        <section class="slide">
+            <h2 class="chapter-title">セットアップ</h2>
+            <p class="chapter-subtitle">インストール（pip）</p>
+            <pre class="code-block"># bash
+pip install --upgrade openai python-dotenv</pre>
+        </section>
+
+        <!-- 7: SDK（環境変数なし） -->
+        <section class="slide">
+            <h2 class="chapter-title">SDK（環境変数なし）</h2>
+            <p class="chapter-subtitle">まずは直書きで動かす</p>
+            <pre class="code-block">from openai import OpenAI
+
+client = OpenAI(api_key="sk-xxxxx_your_key_here")
+
+response = client.responses.create(
+    model="gpt-4o-mini",
+    input="Write a short bedtime story about a unicorn."
+)
+
+print(response.output_text)</pre>
+        </section>
+
+        <!-- 8: .env -->
+        <section class="slide">
+            <h2 class="chapter-title">APIキー管理</h2>
+            <p class="chapter-subtitle">.env の例</p>
+            <pre class="code-block"># .env
+OPENAI_API_KEY=sk-xxxxx_your_key_here
+OPENAI_MODEL=gpt-4o-mini</pre>
+        </section>
+
+        <!-- 9: config.py -->
+        <section class="slide">
+            <h2 class="chapter-title">APIキー管理</h2>
+            <p class="chapter-subtitle">config.py</p>
+            <pre class="code-block">import os
+from dotenv import load_dotenv
+
+load_dotenv()
+API_KEY = os.environ.get("OPENAI_API_KEY")
+MODEL = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
+
+if not API_KEY:
+    raise RuntimeError("環境変数 OPENAI_API_KEY が設定されていません。")</pre>
+        </section>
+
+        <!-- 10: SDK（環境変数あり） -->
+        <section class="slide">
+            <h2 class="chapter-title">SDK（環境変数あり）</h2>
+            <p class="chapter-subtitle">.env + config.py を利用</p>
+            <pre class="code-block">from openai import OpenAI
+from config import API_KEY, MODEL
+
+client = OpenAI(api_key=API_KEY)
+
+response = client.responses.create(
+    model=MODEL,
+    input="日本語で、このSDKの最短使用例を1行で説明して。"
+)
+
+print(response.output_text)</pre>
+        </section>
+
+        <!-- 11: エラーハンドリング（SDK） -->
+        <section class="slide">
+            <h2 class="chapter-title">エラーハンドリング（公式SDK）</h2>
+            <pre class="code-block">from openai import OpenAI
+from openai import AuthenticationError, RateLimitError, APIConnectionError, APIStatusError
+from config import API_KEY, MODEL
+
+client = OpenAI(api_key=API_KEY)
+try:
+    response = client.responses.create(
+        model=MODEL,
+        input="テスト"
+    )
+    print(response.output_text)
+except AuthenticationError:
+    print("認証エラー: APIキーを確認してください。")
+except RateLimitError:
+    print("レート制限: しばらく待って再試行してください。")
+except APIConnectionError:
+    print("接続エラー: ネットワークやDNSを確認してください。")
+except APIStatusError as e:
+    print(f"APIステータスエラー: {e.status_code} {e.response}")
+except Exception as e:
+    print(f"不明なエラー: {e}")</pre>
+        </section>
+
+        <!-- 12: ストリーミング（公式SDK） -->
+        <section class="slide">
+            <h2 class="chapter-title">ストリーミング（公式SDK）</h2>
+            <pre class="code-block">from openai import OpenAI
+from config import API_KEY, MODEL
+
+client = OpenAI(api_key=API_KEY)
+
+with client.responses.stream(
+    model=MODEL,
+    input="200文字で自己紹介をストリーム出力してください。"
+) as stream:
+    for event in stream:
+        if event.type == "response.output_text.delta":
+            print(event.delta, end="", flush=True)
+        elif event.type == "response.error":
+            print("\nError:", event.error)
+    final = stream.get_final_response()
+    print("\n---\nFinal:", final.output_text)</pre>
+        </section>
+
+        <!-- 13: 会話を貯めるチャット（クラス設計） -->
+        <section class="slide">
+            <h2 class="chapter-title">会話を貯めるチャット（クラス）</h2>
+            <pre class="code-block">from openai import OpenAI
+from dataclasses import dataclass, field
+from typing import List, Dict
+
+class ChatSession:
+    def __init__(self, client: OpenAI, model: str):
+        self.client = client
+        self.model = model
+        self.messages: List[Dict[str, str]] = []  # {role, content}
+
+    def send(self, user_input: str) -> str:
+        self.messages.append({"role": "user", "content": user_input})
+        history_text = "\n".join(f"{m['role']}: {m['content']}" for m in self.messages)
+        response = self.client.responses.create(model=self.model, input=history_text)
+        assistant = response.output_text.strip()
+        self.messages.append({"role": "assistant", "content": assistant})
+        return assistant
+
+# 使い方
+from config import API_KEY, MODEL
+client = OpenAI(api_key=API_KEY)
+chat = ChatSession(client, MODEL)
+print(chat.send("自己紹介して"))
+print(chat.send("今の回答を短く3箇条で"))
+print(chat.send("最後に一言メッセージを"))</pre>
+        </section>
+
+        <!-- 17: 対話ループ（input版） -->
+        <section class="slide">
+            <h2 class="chapter-title">対話ループ（input版）</h2>
+            <pre class="code-block"># 上の ChatSession を使って、対話CLIを実装
+from openai import OpenAI
+from config import API_KEY, MODEL
+
+client = OpenAI(api_key=API_KEY)
+chat = ChatSession(client, MODEL)
+
+print("対話を開始します。終了は 'exit' または 'quit'。")
+while True:
+    try:
+        user_input = input("You> ").strip()
+    except (EOFError, KeyboardInterrupt):
+        print("\n終了します。")
+        break
+    if user_input.lower() in ("exit", "quit"):
+        print("終了します。")
+        break
+    reply = chat.send(user_input)
+    print("Assistant>", reply)
+            </pre>
+        </section>
+    </div>
+
+    <div class="navigation">
+        <button id="prev" class="arrow">&larr;</button>
+        <button id="next" class="arrow">&rarr;</button>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const slides = document.querySelectorAll('.slide');
+            const prevButton = document.getElementById('prev');
+            const nextButton = document.getElementById('next');
+            let currentSlide = 0;
+
+            const characterImages = [
+                'images/machi-musume.png',
+                'images/voice-ninja1.png',
+                'images/voice-ninja2.png',
+                'images/voice-samurai.png'
+            ];
+
+            const shuffledImages = characterImages.sort(() => 0.5 - Math.random());
+
+            // 1枚目以外の各スライドにランダムキャラ画像を配置
+            slides.forEach((slide, i) => {
+                if (i > 0) {
+                    const img = document.createElement('img');
+                    img.src = shuffledImages[(i - 1) % shuffledImages.length];
+                    img.classList.add('character-image');
+                    slide.appendChild(img);
+                }
+            });
+
+            function showSlide(index) {
+                slides.forEach((slide, i) => {
+                    slide.classList.remove('active');
+                    if (i === index) {
+                        slide.classList.add('active');
+                    }
+                });
+                updateNavButtons();
+            }
+
+            function updateNavButtons() {
+                prevButton.disabled = currentSlide === 0;
+                nextButton.disabled = currentSlide === slides.length - 1;
+            }
+
+            prevButton.addEventListener('click', () => {
+                if (currentSlide > 0) {
+                    currentSlide--;
+                    showSlide(currentSlide);
+                }
+            });
+
+            nextButton.addEventListener('click', () => {
+                if (currentSlide < slides.length - 1) {
+                    currentSlide++;
+                    showSlide(currentSlide);
+                }
+            });
+
+            showSlide(currentSlide);
+        });
+    </script>
+</body>
+</html>
+
+
