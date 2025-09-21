@@ -378,7 +378,7 @@ class ChatSession:
 
     def send(self, user_input: str) -> str:
         self.messages.append({"role": "user", "content": user_input})
-        # 会話履歴をoleごとのJSONメッセージ配列として渡す
+        # 会話履歴をroleごとのJSONメッセージ配列として渡す
         response = self.client.responses.create(model=self.model, input=self.messages)
         assistant = response.output_text.strip()
         self.messages.append({"role": "assistant", "content": assistant})
